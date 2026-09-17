@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Home · School Hub</title>
+<link rel="stylesheet" href="app.css">
+<script>document.documentElement.dataset.theme = localStorage.getItem('theme') || 'light';</script>
+</head>
+<body>
+<div class="layout">
+  <aside class="sidebar" id="sidebar"></aside>
+  <main class="main"><div class="container">
+    <h1>Welcome 👋</h1>
+    <p class="muted">Pick a tool from the sidebar. Everything is filtered by your permissions.</p>
+
+    <div class="card">
+      <h3 style="margin-top:0">Quick start</h3>
+      <ul style="margin:0;padding-left:18px">
+        <li>Click a tool in the sidebar to expand the accounts you can view.</li>
+        <li>Switch theme with the 🌓 button (saved per browser).</li>
+        <li>Admin tools appear only when you're logged in as admin.</li>
+      </ul>
+    </div>
+  </div></main>
+</div>
+
+<script src="config.js"></script>
+<script src="tools.js"></script>
+<script src="app.js"></script>
+<script>mountLayout();</script>
+</body>
+</html>
