@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>School Hub</title>
+<link rel="stylesheet" href="/schintegration/app.css">
+<script>document.documentElement.dataset.theme = localStorage.getItem('theme') || 'light';</script>
+</head>
+<body>
+<div class="layout">
+  <aside class="sidebar" id="sidebar"></aside>
+  <main class="main"><div class="container" id="content">Loading…</div></main>
+</div>
+
+<script src="/schintegration/config.js"></script>
+<script src="/schintegration/tools.js"></script>
+<script src="/schintegration/app.js"></script>
+<script>
+(async () => {
+  // Parse /schintegration/{user_id}/{tool}/...rest
+  const prefix = window.BASE.replace(/\/$/, '');   // "/schintegration"
+  const raw = location.pathname.startsWith(prefix)
+    ? location.pathname.slice(prefix.length)
+    : location.pathname;
+  const segs = raw.split('/').filter(Boolean);
+  const userId = segs[0] || '';
+  const tool   = segs[1] || '';
+  const rest   = segs.slice(2);
+  const content = document.getElementById('content');
+
+  if (!userId || !tool) {
+    content.innerHTML = '<div class="card"><h2>Not found</h2><p class="muted">Bad URL.</p></div>';
+    return;
+  }
+
+  const me = await mountLayout();
+  if (!me) return;
+
+  // Ask the API whether this viewer can see this target/tool.
+  let allowed = false;
+  try {
+    const r = await api(`/check-access?target=${userId}&tool=${tool}`);
+    allowed = !!r.allowed;
+  } catch (e) {
+    content.innerHTML = `<div class="card"><h2>Error</h2><p class="muted">${e.message}</p></div>`;
+    return;
+  }
+
+  if (!allowed) {
+    content.innerHTML = `<div class="card">
+      <h2>Access denied</h2>
+      <p class="muted">You don't have permission to view this.</p>
+    </div>`;
+    return;
+  }
+
+  // Load the tool module; it exposes renderTool({ userId, tool, rest, me }).
+  const script = document.createElement('script');
+  script.src = window.BASE + 'tools/' + tool + '.js';
+  script.onerror = () => {
+    content.innerHTML = `<div class="card"><h2>Unknown tool</h2><p class="muted">No tool named "${tool}".</p></div>`;
+  };
+  script.onload = () => {
+    if (typeof window.renderTool === 'function') {
+      window.renderTool({ userId, tool, rest, me, content });
+    } else {
+      content.innerHTML = `<div class="card"><h2>Tool error</h2><p class="muted">"${tool}" didn't register a renderTool function.</p></div>`;
+    }
+  };
+  document.head.appendChild(script);
+})();
+</script>
+</body>
+</html>
