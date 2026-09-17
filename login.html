@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Login · School Hub</title>
+<link rel="stylesheet" href="app.css">
+<script>document.documentElement.dataset.theme = localStorage.getItem('theme') || 'light';</script>
+</head>
+<body>
+  <div style="min-height:100vh;display:grid;place-items:center;padding:20px">
+    <form id="f" class="card" style="width:100%;max-width:380px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+        <h2 style="margin:0">🎒 School Hub</h2>
+        <button type="button" class="theme-toggle" onclick="toggleTheme()">🌓</button>
+      </div>
+      <div class="grid">
+        <input name="username" placeholder="Username" autocomplete="username" required>
+        <input name="password" type="password" placeholder="Password" autocomplete="current-password" required>
+        <button class="btn-primary" type="submit">Log in</button>
+        <div id="err" class="muted" style="color:var(--danger);min-height:20px;font-size:14px"></div>
+      </div>
+    </form>
+  </div>
+
+<script src="config.js"></script>
+<script src="app.js"></script>
+<script>
+  // already logged in? skip to home
+  (async () => {
+    if (getAuth()) {
+      try { await api('/me'); location.replace('index.html'); } catch { clearAuth(); }
+    }
+  })();
+
+  const f = document.getElementById('f');
+  const err = document.getElementById('err');
+
+  f.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    err.textContent = '';
+    const data = Object.fromEntries(new FormData(f));
+    try {
+      const res = await fetch(`${window.API_BASE}/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+      });
+      const out = await res.json();
+      if (!res.ok) throw new Error(out.error || 'Login failed');
+      setAuth(out);
+      location.replace('index.html');
+    } catch (e) {
+      err.textContent = e.message;
+    }
+  });
+</script>
+</body>
+</html>
