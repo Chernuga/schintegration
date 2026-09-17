@@ -1,0 +1,118 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Register · School Hub</title>
+<link rel="stylesheet" href="/schintegration/app.css">
+<script>document.documentElement.dataset.theme = localStorage.getItem('theme') || 'light';</script>
+</head>
+<body>
+  <div style="min-height:100vh;display:grid;place-items:center;padding:20px">
+    <form id="f" class="card" style="width:100%;max-width:440px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+        <h2 style="margin:0">🎒 Create account</h2>
+        <button type="button" class="theme-toggle" onclick="toggleTheme()">🌓</button>
+      </div>
+
+      <p class="muted" style="margin-top:0">Pick your class and number — your ID is generated automatically.</p>
+
+      <div class="row" style="align-items:end;margin-bottom:10px">
+        <div style="flex:1"><label class="muted" style="font-size:13px">Grade</label>
+          <select id="g">
+            <option value="0">8</option>
+            <option value="1">9</option>
+            <option value="2" selected>10</option>
+            <option value="3">11</option>
+            <option value="4">12</option>
+          </select></div>
+        <div style="flex:1"><label class="muted" style="font-size:13px">Class</label>
+          <select id="l">
+            <option value="0">А</option>
+            <option value="1">Б</option>
+            <option value="2">В</option>
+            <option value="3">Г</option>
+            <option value="4">Д</option>
+            <option value="5" selected>Е</option>
+            <option value="6">Ж</option>
+          </select></div>
+        <div style="flex:1"><label class="muted" style="font-size:13px"># (1–35)</label>
+          <input id="n" type="number" min="1" max="35" value="5"></div>
+        <div style="flex:0 0 90px"><label class="muted" style="font-size:13px">ID</label>
+          <input id="genId" readonly></div>
+      </div>
+
+      <div class="grid">
+        <input id="username" placeholder="Username (min 3 chars)" required>
+        <input id="display_name" placeholder="Display name (optional)">
+        <input id="password" type="password" placeholder="Password (min 4 chars)" required>
+        <input id="invite" placeholder="Invite code (if required)">
+        <button class="btn-primary" type="submit">Create account</button>
+        <div id="err" class="muted" style="color:var(--danger);min-height:20px;font-size:14px"></div>
+        <div class="muted" style="font-size:14px;text-align:center">
+          Already have an account? <a href="/schintegration/login.html">Log in</a>
+        </div>
+      </div>
+    </form>
+  </div>
+
+<script src="/schintegration/config.js"></script>
+<script src="/schintegration/app.js"></script>
+<script>
+  const g = document.getElementById('g');
+  const l = document.getElementById('l');
+  const n = document.getElementById('n');
+  const gen = document.getElementById('genId');
+
+  function updateId(){
+    const num = Math.max(1, Math.min(35, parseInt(n.value || '1', 10)));
+    const nn = String(num - 1).padStart(2, '0'); // 0-indexed
+    gen.value = `${g.value}${l.value}${nn}`;
+  }
+  ['change','input'].forEach(ev => {
+    g.addEventListener(ev, updateId);
+    l.addEventListener(ev, updateId);
+    n.addEventListener(ev, updateId);
+  });
+  updateId();
+
+  const f = document.getElementById('f');
+  const err = document.getElementById('err');
+
+  f.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    err.textContent = '';
+    const body = {
+      id: gen.value,
+      username: document.getElementById('username').value.trim(),
+      display_name: document.getElementById('display_name').value.trim(),
+      password: document.getElementById('password').value,
+      invite: document.getElementById('invite').value.trim(),
+    };
+    try {
+      let res;
+      try {
+        res = await fetch(`${window.API_BASE}/register`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body),
+        });
+      } catch {
+        throw new Error('Cannot reach the server. Check API_BASE in config.js.');
+      }
+      const text = await res.text();
+      let out;
+      try { out = text ? JSON.parse(text) : {}; }
+      catch {
+        throw new Error(`Server replied with non-JSON (HTTP ${res.status}). Check API_BASE in config.js.`);
+      }
+      if (!res.ok) throw new Error(out.error || 'Registration failed');
+      setAuth(out);  // auto-login
+      location.replace(window.BASE + 'index.html');
+    } catch (e) {
+      err.textContent = e.message;
+    }
+  });
+</script>
+</body>
+</html>
