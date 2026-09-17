@@ -1,0 +1,199 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Admin · School Hub</title>
+<link rel="stylesheet" href="app.css">
+<script>document.documentElement.dataset.theme = localStorage.getItem('theme') || 'light';</script>
+<style>
+  .user-row{display:grid;grid-template-columns:1fr auto;gap:12px;align-items:start;padding:12px 0;border-bottom:1px solid var(--border)}
+  .user-row:last-child{border-bottom:0}
+  .paths-input{font-size:13px}
+  .pill{display:inline-block;background:var(--hover);padding:2px 8px;border-radius:20px;font-size:12px;margin-left:6px}
+</style>
+</head>
+<body>
+<div class="layout">
+  <aside class="sidebar" id="sidebar"></aside>
+  <main class="main"><div class="container">
+    <h1>🛠 Admin</h1>
+
+    <div class="card">
+      <h3 style="margin-top:0">Create user</h3>
+      <div class="row" style="align-items:end">
+        <div style="flex:0 0 110px"><label class="muted">Grade</label>
+          <select id="g">
+            <option value="0">8</option>
+            <option value="1">9</option>
+            <option value="2" selected>10</option>
+            <option value="3">11</option>
+            <option value="4">12</option>
+          </select></div>
+        <div style="flex:0 0 110px"><label class="muted">Class</label>
+          <select id="l">
+            <option value="0">А</option>
+            <option value="1">Б</option>
+            <option value="2">В</option>
+            <option value="3">Г</option>
+            <option value="4">Д</option>
+            <option value="5" selected>Е</option>
+            <option value="6">Ж</option>
+          </select></div>
+        <div style="flex:0 0 140px"><label class="muted"># in class (1-35)</label>
+          <input id="n" type="number" min="1" max="35" value="5"></div>
+        <div style="flex:0 0 110px"><label class="muted">ID</label>
+          <input id="genId" readonly></div>
+      </div>
+      <div class="row" style="margin-top:10px">
+        <input id="username" placeholder="username" style="flex:1">
+        <input id="display_name" placeholder="display name" style="flex:1">
+        <input id="password" type="text" placeholder="password" style="flex:1">
+        <button class="btn-primary" onclick="createUser()">Create</button>
+      </div>
+      <div id="createMsg" class="muted" style="margin-top:8px"></div>
+    </div>
+
+    <div class="card">
+      <h3 style="margin-top:0">Permissions</h3>
+      <p class="muted" style="margin-top:0">
+        One path per line, format <code>targetId/tool</code>. Example:<br>
+        <code>2504/grades</code><br>
+        <code>2603/assignments</code>
+      </p>
+      <div id="permList"></div>
+    </div>
+
+    <div class="card">
+      <h3 style="margin-top:0">Users</h3>
+      <div id="userList" class="muted">Loading…</div>
+    </div>
+  </div></main>
+</div>
+
+<script src="config.js"></script>
+<script src="tools.js"></script>
+<script src="app.js"></script>
+<script>
+(async () => {
+  await mountLayout({ admin: true });
+  await refresh();
+
+  // live ID generation
+  const g = document.getElementById('g');
+  const l = document.getElementById('l');
+  const n = document.getElementById('n');
+  const gen = document.getElementById('genId');
+
+  function updateId(){
+    const num = Math.max(1, Math.min(35, parseInt(n.value || '1', 10)));
+    const nn = String(num - 1).padStart(2, '0'); // 0-indexed
+    gen.value = `${g.value}${l.value}${nn}`;
+  }
+  ['change','input'].forEach(ev => {
+    g.addEventListener(ev, updateId);
+    l.addEventListener(ev, updateId);
+    n.addEventListener(ev, updateId);
+  });
+  updateId();
+})();
+
+async function refresh() {
+  const [{ users }, { permissions }] = await Promise.all([
+    api('/admin/users'),
+    api('/admin/permissions'),
+  ]);
+  renderUsers(users);
+  renderPermissions(users, permissions);
+}
+
+function renderUsers(users) {
+  const host = document.getElementById('userList');
+  if (!users.length) { host.textContent = 'No users yet.'; return; }
+  host.innerHTML = users.map(u => `
+    <div class="user-row">
+      <div>
+        <b>${u.display_name || u.username}</b>
+        <span class="pill">${u.id}</span>
+        <span class="muted"> @${u.username}</span>
+      </div>
+      <button class="btn-danger" onclick="delUser('${u.id}')">Delete</button>
+    </div>`).join('');
+}
+
+function renderPermissions(users, grouped) {
+  const host = document.getElementById('permList');
+  const entries = [{ id: 'guest', display_name: '(not logged in)' }, ...users];
+  host.innerHTML = entries.map(u => {
+    const paths = (grouped[u.id] || []).map(p => `${p.target_id}/${p.path}`).join('\n');
+    return `
+      <div class="user-row">
+        <div style="grid-column:1/-1">
+          <div><b>${u.display_name || u.username || u.id}</b> <span class="pill">${u.id}</span></div>
+          <textarea class="paths-input" data-viewer="${u.id}" spellcheck="false"
+            placeholder="2504/grades&#10;2603/assignments">${paths}</textarea>
+          <div class="row" style="margin-top:6px">
+            <button class="btn-primary" onclick="savePerms('${u.id}')">Save</button>
+            <span class="muted" id="msg-${u.id}"></span>
+          </div>
+        </div>
+      </div>`;
+  }).join('');
+}
+
+async function savePerms(viewerId) {
+  const ta = document.querySelector(`textarea[data-viewer="${viewerId}"]`);
+  const msg = document.getElementById(`msg-${viewerId}`);
+  const lines = ta.value.split('\n').map(s => s.trim()).filter(Boolean);
+  const entries = [];
+  for (const line of lines) {
+    const [target_id, ...rest] = line.split('/');
+    const path = rest.join('/');
+    if (!target_id || !path) { msg.textContent = `Bad line: "${line}"`; return; }
+    entries.push({ target_id, path });
+  }
+  try {
+    await api('/admin/permissions', {
+      method: 'POST',
+      body: JSON.stringify({ viewer_id: viewerId, entries }),
+    });
+    msg.textContent = '✓ Saved';
+    setTimeout(() => msg.textContent = '', 1500);
+  } catch (e) {
+    msg.textContent = e.message;
+  }
+}
+
+async function createUser() {
+  const msg = document.getElementById('createMsg');
+  msg.textContent = '';
+  const body = {
+    id: document.getElementById('genId').value,
+    username: document.getElementById('username').value.trim(),
+    display_name: document.getElementById('display_name').value.trim(),
+    password: document.getElementById('password').value,
+  };
+  if (!body.username || !body.password) {
+    msg.textContent = 'Username & password required';
+    return;
+  }
+  try {
+    await api('/admin/users', { method: 'POST', body: JSON.stringify(body) });
+    msg.textContent = `✓ Created ${body.id}`;
+    document.getElementById('username').value = '';
+    document.getElementById('display_name').value = '';
+    document.getElementById('password').value = '';
+    await refresh();
+  } catch (e) {
+    msg.textContent = e.message;
+  }
+}
+
+async function delUser(id) {
+  if (!confirm(`Delete user ${id}?`)) return;
+  await api('/admin/users', { method: 'DELETE', body: JSON.stringify({ id }) });
+  await refresh();
+}
+</script>
+</body>
+</html>
