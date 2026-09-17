@@ -2,6 +2,6 @@
 // The ONLY place that knows where the API lives.
 // Update this if your Worker URL changes.
 
-window.API_BASE = 'https://school-hub.YOUR-SUBDOMAIN.workers.dev/api';
+window.API_BASE = 'https://schintegration.ostroshile.workers.dev/api';
 // With a custom domain it would look like:
 // window.API_BASE = 'https://api.yourdomain.com/api';
