@@ -1,0 +1,9 @@
+# Never commit worker code here
+worker.js
+worker/
+wrangler.toml
+wrangler.jsonc
+
+# OS junk
+.DS_Store
+Thumbs.db
