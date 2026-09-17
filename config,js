@@ -1,0 +1,4 @@
+// config.js — change this to your actual Worker URL
+window.API_BASE = 'https://school-hub.YOUR-SUBDOMAIN.workers.dev/api';
+// If you later add a custom domain for the Worker, it becomes:
+// window.API_BASE = 'https://api.yourdomain.com/api';
