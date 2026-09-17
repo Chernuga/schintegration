@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Admin · School Hub</title>
-<link rel="stylesheet" href="app.css">
+<link rel="stylesheet" href="/schintegration/app.css">
 <script>document.documentElement.dataset.theme = localStorage.getItem('theme') || 'light';</script>
 <style>
   .user-row{display:grid;grid-template-columns:1fr auto;gap:12px;align-items:start;padding:12px 0;border-bottom:1px solid var(--border)}
@@ -71,9 +71,9 @@
   </div></main>
 </div>
 
-<script src="config.js"></script>
-<script src="tools.js"></script>
-<script src="app.js"></script>
+<script src="/schintegration/config.js"></script>
+<script src="/schintegration/tools.js"></script>
+<script src="/schintegration/app.js"></script>
 <script>
 (async () => {
   await mountLayout({ admin: true });
