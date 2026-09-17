@@ -1,7 +1,7 @@
-// config.js
-// The ONLY place that knows where the API lives.
-// Update this if your Worker URL changes.
-
+// config.js — the only file that knows where the API lives.
 window.API_BASE = 'https://schintegration.ostroshile.workers.dev/api';
-// With a custom domain it would look like:
-// window.API_BASE = 'https://api.yourdomain.com/api';
+
+// Your repo's base path. Used so links work from any page, including 404.html
+// which is served from deep URLs. If you rename the repo or add a custom
+// domain, update this one line.
+window.BASE = '/schintegration/';
