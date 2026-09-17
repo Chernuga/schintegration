@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Login · School Hub</title>
-<link rel="stylesheet" href="app.css">
+<link rel="stylesheet" href="/schintegration/app.css">
 <script>document.documentElement.dataset.theme = localStorage.getItem('theme') || 'light';</script>
 </head>
 <body>
@@ -15,21 +15,24 @@
         <button type="button" class="theme-toggle" onclick="toggleTheme()">🌓</button>
       </div>
       <div class="grid">
-        <input name="username" placeholder="Username" autocomplete="username" required>
+        <input name="username" placeholder="Username or ID" autocomplete="username" required>
         <input name="password" type="password" placeholder="Password" autocomplete="current-password" required>
         <button class="btn-primary" type="submit">Log in</button>
         <div id="err" class="muted" style="color:var(--danger);min-height:20px;font-size:14px"></div>
+        <div class="muted" style="font-size:14px;text-align:center">
+          No account? <a href="/schintegration/register.html">Register</a>
+        </div>
       </div>
     </form>
   </div>
 
-<script src="config.js"></script>
-<script src="app.js"></script>
+<script src="/schintegration/config.js"></script>
+<script src="/schintegration/app.js"></script>
 <script>
   // already logged in? skip to home
   (async () => {
     if (getAuth()) {
-      try { await api('/me'); location.replace('index.html'); } catch { clearAuth(); }
+      try { await api('/me'); location.replace(window.BASE + 'index.html'); } catch { clearAuth(); }
     }
   })();
 
@@ -41,15 +44,25 @@
     err.textContent = '';
     const data = Object.fromEntries(new FormData(f));
     try {
-      const res = await fetch(`${window.API_BASE}/login`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data),
-      });
-      const out = await res.json();
+      let res;
+      try {
+        res = await fetch(`${window.API_BASE}/login`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(data),
+        });
+      } catch {
+        throw new Error('Cannot reach the server. Check API_BASE in config.js.');
+      }
+      const text = await res.text();
+      let out;
+      try { out = text ? JSON.parse(text) : {}; }
+      catch {
+        throw new Error(`Server replied with non-JSON (HTTP ${res.status}). Check API_BASE in config.js.`);
+      }
       if (!res.ok) throw new Error(out.error || 'Login failed');
       setAuth(out);
-      location.replace('index.html');
+      location.replace(window.BASE + 'index.html');
     } catch (e) {
       err.textContent = e.message;
     }
